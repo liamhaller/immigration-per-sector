@@ -1,0 +1,166 @@
+---
+title: "Example Chartbook"
+author: "Greenmantle Macro Team"
+date: today
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=0.5in
+    fontsize: 11pt
+    fig-width: 8
+    fig-height: 6
+    keep-tex: false
+    toc: true
+    toc-depth: 4
+    block-headings: false
+    include-in-header:
+        text: |
+            \usepackage{fancyhdr}
+            \pagestyle{fancy}
+            \fancyhf{}
+            \cfoot{\thepage}
+            \usepackage{titlesec}
+            \titlespacing*{\section}{0pt}{5pt}{5pt}
+            \titlespacing*{\subsection}{0pt}{5pt}{0pt}
+            \titlespacing*{\subsubsection}{0pt}{0pt}{0pt}
+jupyter: python3
+execute:
+  echo: false
+  warning: false
+  freeze: false
+---
+
+```{python}
+#| echo: false
+# Setup and pipeline execution
+import pandas as pd
+import matplotlib.pyplot as plt
+from pathlib import Path
+import sys
+import importlib.util
+
+# Set up paths
+project_root = Path("..").resolve()
+sys.path.insert(0, str(project_root))
+
+# Disable logging completely for clean Quarto output
+import logging
+logging.disable(logging.CRITICAL)
+
+from Tools import gm_formatting
+
+# Step 1: Data Collection - Multiple API calls
+api_modules = [
+   # ("example_bls", "APICalls/example_bls.py"),
+    # ("example_census_trade", "APICalls/example_census_trade.py"),
+    # ("example_census_manufacturing", "APICalls/example_census_manufacturing.py"),
+    # ("example_bea", "APICalls/example_bea.py"),
+]
+
+# Step 1: Data Collection - Multiple API calls
+for module_name, module_path in api_modules:
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        project_root / module_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.main()
+
+# Step 2: Data Processing - Multiple processors
+processing_modules = [
+    ("process_bls_ppi", "DataProcessing/process_bls_ppi.py"),
+    # ("process_census_trade", "DataProcessing/process_census_trade.py"),
+    # ("process_manufacturing", "DataProcessing/process_manufacturing.py"),
+]
+
+for module_name, module_path in processing_modules:
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        project_root / module_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.main()
+
+# Step 3: Load analysis results - Multiple analysis modules
+analysis_modules = [
+    ("example_chartbook_analysis", "Analysis/quarto/example_chartbook_analysis.py"),
+    # ("trade_analysis", "Analysis/quarto/trade_analysis.py"),
+    # ("manufacturing_analysis", "Analysis/quarto/manufacturing_analysis.py"),
+    # ("macro_dashboard", "Analysis/quarto/macro_dashboard.py"),
+]
+
+for module_name, module_path in analysis_modules:
+    spec = importlib.util.spec_from_file_location(
+        module_name,
+        project_root / module_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    # Import module into global namespace for easy access
+    globals()[module_name] = module
+
+# Analysis modules are now available in global namespace
+```
+
+{{< pagebreak >}}
+
+# Producer Price Index Analysis
+
+## Largest PPI Movements in 2025
+
+### Time Series: Top 5 Biggest Movers
+
+```{python}
+#| fig-width: 10
+#| fig-height: 6
+
+# Create time series chart for top 5 movers
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.plot(example_chartbook_analysis.top5_chart_data)
+
+# Apply GM formatting
+gm_formatting(
+    ax=ax,
+    title=f"Producer Price Index: Top 5 Biggest Movers ({example_chartbook_analysis.analysis_period})",
+    data=example_chartbook_analysis.top5_chart_data,
+    ylabel="PPI Value"
+)
+
+plt.tight_layout()
+plt.show()
+```
+
+
+{{< pagebreak >}}
+
+## Analysis Tables
+
+### Top 5 PPI Increases
+
+| NAICS | Baseline Value | Latest Value | Percent Change |
+|-------|---------------:|-------------:|---------------:|
+| `{python} example_chartbook_analysis.top5_increases.iloc[0]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[0]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[0]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[0]['percent_change']:+.2f}"`% |
+| `{python} example_chartbook_analysis.top5_increases.iloc[1]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[1]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[1]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[1]['percent_change']:+.2f}"`% |
+| `{python} example_chartbook_analysis.top5_increases.iloc[2]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[2]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[2]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[2]['percent_change']:+.2f}"`% |
+| `{python} example_chartbook_analysis.top5_increases.iloc[3]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[3]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[3]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[3]['percent_change']:+.2f}"`% |
+| `{python} example_chartbook_analysis.top5_increases.iloc[4]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[4]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[4]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_increases.iloc[4]['percent_change']:+.2f}"`% |
+
+### Top 5 PPI Decreases
+
+| NAICS | Baseline Value | Latest Value | Percent Change |
+|-------|---------------:|-------------:|---------------:|
+| `{python} example_chartbook_analysis.top5_decreases.iloc[0]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[0]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[0]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[0]['percent_change']:+.2f}"`% |
+| `{python} example_chartbook_analysis.top5_decreases.iloc[1]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[1]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[1]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[1]['percent_change']:+.2f}"`% |
+| `{python} example_chartbook_analysis.top5_decreases.iloc[2]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[2]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[2]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[2]['percent_change']:+.2f}"`% |
+| `{python} example_chartbook_analysis.top5_decreases.iloc[3]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[3]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[3]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[3]['percent_change']:+.2f}"`% |
+| `{python} example_chartbook_analysis.top5_decreases.iloc[4]['NAICS']` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[4]['baseline_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[4]['latest_value']:.1f}"` | `{python} f"{example_chartbook_analysis.top5_decreases.iloc[4]['percent_change']:+.2f}"`% |
+
+### Summary
+
+*Analysis Period: `{python} example_chartbook_analysis.analysis_period`*
+
+---
+
+*Report generated using the Greenmantle Data Science Template pipeline system.*
