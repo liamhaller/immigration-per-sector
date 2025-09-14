@@ -17,18 +17,21 @@ from Tools import get_logger
 logger = get_logger(__name__)
 
 
-def run_example_pipeline():
+def run_immigration_analysis_pipeline():
     """
-    BLS PPI Analysis Pipeline.
+    Immigration Growth Analysis Pipeline.
 
-    This pipeline demonstrates the standard 3-Step structure:
-    1. Data Collection (BLS API calls)
-    2. Data Processing (filter and clean PPI data)
-    3. Analysis and Output (top 5 NAICS with largest PPI increases)
+    This pipeline analyzes the relationship between immigration workforce
+    composition and economic growth across industries using Census PUMS
+    and BLS data. Follows the standard 3-Step structure:
+
+    1. Data Collection (Census PUMS and BLS API calls)
+    2. Data Processing (process PUMS → process BLS → join → create analysis datasets)
+    3. Analysis and Output (visualizations and correlation analysis)
     """
 
     logger.info("=" * 80)
-    logger.info("BLS PPI ANALYSIS PIPELINE")
+    logger.info("IMMIGRATION GROWTH ANALYSIS PIPELINE")
     logger.info("=" * 80)
     logger.info(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -37,10 +40,21 @@ def run_example_pipeline():
         logger.info("Step 1: Data Collection")
         logger.info("-" * 40)
 
+        # Import Census PUMS API call module
+        logger.info("Downloading Census PUMS immigration data...")
+        pums_path = importlib.util.spec_from_file_location(
+            "census_pums_immigration",
+            project_root / "APICalls" / "census_pums_immigration.py"
+        )
+        pums_module = importlib.util.module_from_spec(pums_path)
+        pums_path.loader.exec_module(pums_module)
+        pums_module.main()
+
         # Import BLS API call module
+        logger.info("Downloading BLS employment and earnings data...")
         bls_path = importlib.util.spec_from_file_location(
-            "example_bls",                               # Name
-            project_root / "APICalls" / "example_bls.py" # Location
+            "example_bls",
+            project_root / "APICalls" / "example_bls.py"
         )
         bls_module = importlib.util.module_from_spec(bls_path)
         bls_path.loader.exec_module(bls_module)
@@ -49,41 +63,76 @@ def run_example_pipeline():
         # Step 2: Data Processing
         logger.info("Step 2: Data Processing")
         logger.info("-" * 40)
-        # Import BLS processing module
-        processor_path = importlib.util.spec_from_file_location(
-            "process_bls_ppi",                                      # Name
-            project_root / "DataProcessing" / "process_bls_ppi.py"  # Location
+
+        # Process PUMS immigration data
+        logger.info("Processing PUMS immigration data...")
+        process_pums_path = importlib.util.spec_from_file_location(
+            "process_pums_immigration",
+            project_root / "DataProcessing" / "process_pums_immigration.py"
         )
-        processor_module = importlib.util.module_from_spec(processor_path)
-        processor_path.loader.exec_module(processor_module)
-        processor_module.main()
+        process_pums_module = importlib.util.module_from_spec(process_pums_path)
+        process_pums_path.loader.exec_module(process_pums_module)
+        process_pums_module.main()
+
+        # Process BLS data
+        logger.info("Processing BLS employment and earnings data...")
+        process_bls_path = importlib.util.spec_from_file_location(
+            "process_bls_ppi",
+            project_root / "DataProcessing" / "process_bls_ppi.py"
+        )
+        process_bls_module = importlib.util.module_from_spec(process_bls_path)
+        process_bls_path.loader.exec_module(process_bls_module)
+        process_bls_module.main()
+
+        # Join PUMS and BLS NAICS codes
+        logger.info("Joining PUMS and BLS NAICS codes...")
+        join_path = importlib.util.spec_from_file_location(
+            "join_pums_bls_naics",
+            project_root / "DataProcessing" / "join_pums_bls_naics.py"
+        )
+        join_module = importlib.util.module_from_spec(join_path)
+        join_path.loader.exec_module(join_module)
+        join_module.main()
+
+        # Create employment and earnings analysis datasets
+        logger.info("Creating employment and earnings analysis datasets...")
+        analysis_data_path = importlib.util.spec_from_file_location(
+            "create_employment_earnings_immigration_analysis",
+            project_root / "DataProcessing" / "create_employment_earnings_immigration_analysis.py"
+        )
+        analysis_data_module = importlib.util.module_from_spec(analysis_data_path)
+        analysis_data_path.loader.exec_module(analysis_data_module)
+        analysis_data_module.main()
 
         # Step 3: Analysis
         logger.info("Step 3: Analysis")
         logger.info("-" * 40)
-        # Import PPI analysis module
+
+        # Run immigration growth analysis and create visualizations
+        logger.info("Creating immigration growth analysis and visualizations...")
         analysis_path = importlib.util.spec_from_file_location(
-            "ppi_increase_analysis",
-            project_root / "Analysis" / "ppi_increase_analysis.py"
+            "immigration_growth_analysis",
+            project_root / "Analysis" / "immigration_growth_analysis.py"
         )
         analysis_module = importlib.util.module_from_spec(analysis_path)
         analysis_path.loader.exec_module(analysis_module)
         analysis_module.main()
 
         logger.info("=" * 80)
-        logger.info("BLS PPI PIPELINE COMPLETED SUCCESSFULLY")
+        logger.info("IMMIGRATION GROWTH ANALYSIS PIPELINE COMPLETED SUCCESSFULLY")
         logger.info("=" * 80)
         logger.info(f"Completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         logger.info("Output files saved to:")
-        logger.info("  • Raw data: Data/raw/pc/")
-        logger.info("  • Processed data: Data/processed/three_digit_ppi.csv")
-        logger.info("  • Analysis results: output/ppi_increase_analysis/[timestamp]/")
+        logger.info("  • Raw data: Data/raw/")
+        logger.info("  • Processed data: Data/processed/")
+        logger.info("  • Analysis results: output/immigration_growth_analysis/[timestamp]/")
+        logger.info("  • Charts: Employment growth, earnings growth, and correlation analysis")
 
         return True
 
     except Exception as e:
         logger.error("=" * 80)
-        logger.error("BLS PPI PIPELINE FAILED")
+        logger.error("IMMIGRATION GROWTH ANALYSIS PIPELINE FAILED")
         logger.error("=" * 80)
         logger.error(f"Error: {str(e)}")
         logger.error(f"Failed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -91,66 +140,16 @@ def run_example_pipeline():
         return False
 
 
-def run_quarto_report():
-    """
-    Generate Quarto PDF Report.
 
-    Runs the self-contained Quarto notebook that executes the full pipeline
-    and generates a publication-ready PDF report with charts and tables.
-    """
-
-    logger.info("=" * 80)
-    logger.info("QUARTO REPORT GENERATION")
-    logger.info("=" * 80)
-    logger.info(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-    try:
-        import subprocess
-        import os
-
-        # Change to Chartbook directory
-        chartbook_dir = project_root / "Chartbook"
-        original_dir = os.getcwd()
-        os.chdir(chartbook_dir)
-
-        logger.info("Rendering Quarto notebook to PDF...")
-        result = subprocess.run([
-            "uv", "run", "quarto", "render", "example_chartbook.qmd", "--to", "pdf"
-        ], capture_output=True, text=True, cwd=chartbook_dir)
-
-        # Change back to original directory
-        os.chdir(original_dir)
-
-        if result.returncode == 0:
-            logger.info("=" * 80)
-            logger.info("QUARTO REPORT COMPLETED SUCCESSFULLY")
-            logger.info("=" * 80)
-            logger.info(f"Completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            logger.info("PDF report generated:")
-            logger.info(f"  • {chartbook_dir / 'example_chartbook.pdf'}")
-            return True
-        else:
-            logger.error("Quarto rendering failed:")
-            logger.error(result.stderr)
-            return False
-
-    except Exception as e:
-        logger.error("=" * 80)
-        logger.error("QUARTO REPORT FAILED")
-        logger.error("=" * 80)
-        logger.error(f"Error: {str(e)}")
-        logger.error(f"Failed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        return False
 
 
 def show_pipeline_menu():
     """Display available pipeline options."""
     print("\n" + "=" * 60)
-    print("DATA SCIENCE ANALYSIS PIPELINES")
+    print("IMMIGRATION GROWTH ANALYSIS PIPELINE")
     print("=" * 60)
-    print("Available Analysis Options:")
-    print("1. Example Pipeline (demonstrates template structure)")
-    print("2. Generate Chartbook")
+    print("Available Options:")
+    print("1. Run Immigration Analysis")
     print("0. Exit")
     print("-" * 60)
 
@@ -159,11 +158,11 @@ def get_user_choice():
     """Get and validate user menu choice."""
     while True:
         try:
-            choice = input("Please select an option (0-2): ").strip()
-            if choice in ['0', '1', '2']:
+            choice = input("Please select an option (0-1): ").strip()
+            if choice in ['0', '1']:
                 return choice
             else:
-                print("Invalid choice. Please enter 0, 1, or 2.")
+                print("Invalid choice. Please enter 0 or 1.")
         except KeyboardInterrupt:
             print("\n\nExiting...")
             return '0'
@@ -185,7 +184,7 @@ def main():
         import os
         os.chdir(project_root)
 
-    print("Welcome to the [Project Name] Pipeline")
+    print("Welcome to the Immigration Growth Analysis Pipeline")
 
     while True:
         show_pipeline_menu()
@@ -196,21 +195,13 @@ def main():
             return 0
 
         elif choice == '1':
-            print("\nRunning Example Pipeline...")
-            success = run_example_pipeline()
+            print("\nRunning Immigration Growth Analysis Pipeline...")
+            success = run_immigration_analysis_pipeline()
             if success:
-                print("\nExample pipeline completed successfully!")
+                print("\nImmigration analysis pipeline completed successfully!")
+                print("Check output/immigration_growth_analysis/[timestamp]/ for results")
             else:
-                print("\nExample pipeline failed. Check error messages above.")
-
-        elif choice == '2':
-            print("\nGenerating Quarto Report...")
-            success = run_quarto_report()
-            if success:
-                print("\nQuarto report generated successfully!")
-                print("Check Chartbook/example_chartbook.pdf")
-            else:
-                print("\nQuarto report generation failed. Check error messages above.")
+                print("\nImmigration analysis pipeline failed. Check error messages above.")
 
         # Ask if user wants to run another pipeline
         while True:
